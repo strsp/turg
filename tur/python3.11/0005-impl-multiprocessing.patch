@@ -1,20 +1,6 @@
---- a/setup.py
-+++ b/setup.py
-@@ -1328,8 +1329,8 @@
-             sysconfig.get_config_var('POSIX_SEMAPHORES_NOT_ENABLED')
-         ):
-             multiprocessing_srcs.append('_multiprocessing/semaphore.c')
--        self.addext(Extension('_multiprocessing', multiprocessing_srcs))
--        self.addext(Extension('_posixshmem', ['_multiprocessing/posixshmem.c']))
-+        self.addext(Extension('_multiprocessing', multiprocessing_srcs, libraries=["android-posix-semaphore"]))
-+        self.addext(Extension('_posixshmem', ['_multiprocessing/posixshmem.c','_multiprocessing/posix-shm-extension.c']))
- 
-     def detect_uuid(self):
-         # Build the _uuid module if possible
-
 --- a/Lib/multiprocessing/heap.py
 +++ b/Lib/multiprocessing/heap.py
-@@ -70,7 +70,7 @@
+@@ -70,7 +70,7 @@ class Arena(object):
          """
  
          if sys.platform == 'linux':
@@ -23,10 +9,9 @@
          else:
              _dir_candidates = []
  
-
 --- a/Modules/_multiprocessing/multiprocessing.c
 +++ b/Modules/_multiprocessing/multiprocessing.c
-@@ -172,7 +172,7 @@
+@@ -172,7 +172,7 @@ static PyMethodDef module_methods[] = {
      _MULTIPROCESSING_RECV_METHODDEF
      _MULTIPROCESSING_SEND_METHODDEF
  #endif
@@ -35,25 +20,11 @@
      _MULTIPROCESSING_SEM_UNLINK_METHODDEF
  #endif
      {NULL}
-
---- a/Modules/_multiprocessing/posixshmem.c
-+++ b/Modules/_multiprocessing/posixshmem.c
-@@ -11,6 +11,9 @@
- #include <sys/mman.h>
- #endif
- 
-+int shm_open(const char *, int, mode_t);
-+int shm_unlink(const char *);
-+
- /*[clinic input]
- module _posixshmem
- [clinic start generated code]*/
-
---- a/Modules/_multiprocessing/posix-shm-extension.c
+--- /dev/null
 +++ b/Modules/_multiprocessing/posix-shm-extension.c
 @@ -0,0 +1,76 @@
-+/* This file is a port of posix shared memory for Python3 on Termux Android, 
-+   based on musl-libc which is licensed under the following standard MIT 
++/* This file is a port of posix shared memory for Python3 on Termux Android,
++   based on musl-libc which is licensed under the following standard MIT
 +   license. The ported files are listed as following.
 +
 +   File(s): src/mman/shm_open.c
@@ -100,32 +71,56 @@
 +{
 +    char *p;
 +    while (*name == '/') name++;
-+    if (*(p = __strchrnul(name, '/')) || p==name ||
-+        (p-name <= 2 && name[0]=='.' && p[-1]=='.')) {
++    if (*(p = __strchrnul(name, '/')) || p == name ||
++        (p - name <= 2 && name[0] == '.' && p[-1] == '.')) {
 +        errno = EINVAL;
 +        return 0;
 +    }
-+    if (p-name > NAME_MAX-4) {
++    if (p - name > NAME_MAX - 4) {
 +        errno = ENAMETOOLONG;
 +        return 0;
 +    }
 +    memcpy(buf, SHM_PREFIX, strlen(SHM_PREFIX));
-+    memcpy(buf+strlen(SHM_PREFIX), name, p-name+1);
++    memcpy(buf + strlen(SHM_PREFIX), name, p - name + 1);
 +    return buf;
 +}
 +
 +int shm_open(const char *name, int flag, mode_t mode)
 +{
-+    char buf[NAME_MAX+strlen(SHM_PREFIX)+1];
++    char buf[NAME_MAX + strlen(SHM_PREFIX) + 1];
 +    if (!(name = __shm_mapname(name, buf))) return -1;
-+    int fd = open(name, flag|O_NOFOLLOW|O_CLOEXEC|O_NONBLOCK, mode);
++    int fd = open(name, flag | O_NOFOLLOW | O_CLOEXEC | O_NONBLOCK, mode);
 +    return fd;
 +}
 +
 +int shm_unlink(const char *name)
 +{
-+    char buf[NAME_MAX+strlen(SHM_PREFIX)+1];
++    char buf[NAME_MAX + strlen(SHM_PREFIX) + 1];
 +    if (!(name = __shm_mapname(name, buf))) return -1;
 +    return unlink(name);
 +}
-
+--- a/Modules/_multiprocessing/posixshmem.c
++++ b/Modules/_multiprocessing/posixshmem.c
+@@ -11,6 +11,9 @@ posixshmem - A Python extension that provides shm_open() and shm_unlink()
+ #include <sys/mman.h>
+ #endif
+ 
++int shm_open(const char *, int, mode_t);
++int shm_unlink(const char *);
++
+ /*[clinic input]
+ module _posixshmem
+ [clinic start generated code]*/
+--- a/setup.py
++++ b/setup.py
+@@ -1332,8 +1332,8 @@ def detect_multiprocessing(self):
+             sysconfig.get_config_var('POSIX_SEMAPHORES_NOT_ENABLED')
+         ):
+             multiprocessing_srcs.append('_multiprocessing/semaphore.c')
+-        self.addext(Extension('_multiprocessing', multiprocessing_srcs))
+-        self.addext(Extension('_posixshmem', ['_multiprocessing/posixshmem.c']))
++        self.addext(Extension('_multiprocessing', multiprocessing_srcs, libraries=["android-posix-semaphore"]))
++        self.addext(Extension('_posixshmem', ['_multiprocessing/posixshmem.c','_multiprocessing/posix-shm-extension.c']))
+ 
+     def detect_uuid(self):
+         # Build the _uuid module if possible

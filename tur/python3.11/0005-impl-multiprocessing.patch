@@ -20,11 +20,12 @@
      _MULTIPROCESSING_SEM_UNLINK_METHODDEF
  #endif
      {NULL}
---- /dev/null
+
+--- a/Modules/_multiprocessing/posix-shm-extension.c
 +++ b/Modules/_multiprocessing/posix-shm-extension.c
 @@ -0,0 +1,76 @@
-+/* This file is a port of posix shared memory for Python3 on Termux Android,
-+   based on musl-libc which is licensed under the following standard MIT
++/* This file is a port of posix shared memory for Python3 on Termux Android, 
++   based on musl-libc which is licensed under the following standard MIT 
 +   license. The ported files are listed as following.
 +
 +   File(s): src/mman/shm_open.c
@@ -71,31 +72,31 @@
 +{
 +    char *p;
 +    while (*name == '/') name++;
-+    if (*(p = __strchrnul(name, '/')) || p == name ||
-+        (p - name <= 2 && name[0] == '.' && p[-1] == '.')) {
++    if (*(p = __strchrnul(name, '/')) || p==name ||
++        (p-name <= 2 && name[0]=='.' && p[-1]=='.')) {
 +        errno = EINVAL;
 +        return 0;
 +    }
-+    if (p - name > NAME_MAX - 4) {
++    if (p-name > NAME_MAX-4) {
 +        errno = ENAMETOOLONG;
 +        return 0;
 +    }
 +    memcpy(buf, SHM_PREFIX, strlen(SHM_PREFIX));
-+    memcpy(buf + strlen(SHM_PREFIX), name, p - name + 1);
++    memcpy(buf+strlen(SHM_PREFIX), name, p-name+1);
 +    return buf;
 +}
 +
 +int shm_open(const char *name, int flag, mode_t mode)
 +{
-+    char buf[NAME_MAX + strlen(SHM_PREFIX) + 1];
++    char buf[NAME_MAX+strlen(SHM_PREFIX)+1];
 +    if (!(name = __shm_mapname(name, buf))) return -1;
-+    int fd = open(name, flag | O_NOFOLLOW | O_CLOEXEC | O_NONBLOCK, mode);
++    int fd = open(name, flag|O_NOFOLLOW|O_CLOEXEC|O_NONBLOCK, mode);
 +    return fd;
 +}
 +
 +int shm_unlink(const char *name)
 +{
-+    char buf[NAME_MAX + strlen(SHM_PREFIX) + 1];
++    char buf[NAME_MAX+strlen(SHM_PREFIX)+1];
 +    if (!(name = __shm_mapname(name, buf))) return -1;
 +    return unlink(name);
 +}

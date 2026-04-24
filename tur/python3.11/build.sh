@@ -92,14 +92,14 @@ termux_step_pre_configure() {
 	fi
 
 	export LIBCRYPT_LIBS="-lcrypt"
+	echo "CPPFLAGS : $CPPFLAGS"
+	echo "CFLAGS : $CFLAGS"
+	echo "LDFLAGS : $LDFLAGS"
 }
 
 termux_step_post_make_install() {
 	ln -sfr $TERMUX_PREFIX/bin/python$_MAJOR_VERSION $TERMUX_PREFIX/bin/python
 	ln -sfr $TERMUX_PREFIX/bin/python$_MAJOR_VERSION $TERMUX_PREFIX/bin/python3
-	echo "CPPFLAGS : $CPPFLAGS"
-	echo "CFLAGS : $CFLAGS"
-	echo "LDFLAGS : $LDFLAGS"
 }
 
 termux_step_post_massage() {
